@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAC Review Game</title>
+    <style>
+        /* Base Styles for student accessibility */
+        :root {
+            --bg-color: #1a1a1a; 
+            --card-color-default: #fff;
+            --card-bg: #eee;
+            --text-color: #fff;
+            --card-text: #000;
+            --border-correct: #2ecc71;
+            --border-incorrect: #e74c3c;
+            --border-active: #3498db; 
+            --border-hover: #f1c40f;
+            --btn-bg: #f1c40f;
+            --btn-text: #000;
+            --panel-bg: #2a2a2a;
+        }
+
+        /* High Contrast Overrides */
+        body.high-contrast {
+            --bg-color: #000000; 
+            --card-color-default: #FFFF00; 
+            --card-bg: #000000;
+            --text-color: #FFFF00;
+            --card-text: #FFFF00;
+            --border-correct: #00FF00;
+            --border-incorrect: #FF0000;
+            --border-active: #00FFFF; 
+            --border-hover: #FFFF00;
+            --btn-bg: #FFFF00;
+            --btn-text: #000000;
+            --panel-bg: #000000;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            user-select: none; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        h1, h2 { text-align: center; margin-bottom: 5px; }
+
+        /* General UI Elements */
+        #game-container, #report-screen, #teacher-screen {
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            gap: 15px;
+        }
+
+        #score-display {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        /* Menu Selectors */
+        .controls-row {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin: 20px 0;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        body.high-contrast .controls-row { border-color: #FFFF00; }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            background-color: #111;
+            padding: 10px;
+            border-radius: 50px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        body.high-contrast .mode-toggle { border: 2px solid #FFFF00; background-color: #000; box-shadow: none; }
+
+        .toggle-label {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: -5px;
+            text-align: center;
+        }
+
+        .mode-btn {
+            background-color: transparent;
+            color: #aaa;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 2px solid transparent;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        body.high-contrast .mode-btn { color: #FFF; }
+
+        .mode-btn.active {
+            background-color: var(--border-active);
+            color: #000;
+            border-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        body.high-contrast .mode-btn.active { color: #000; border-color: #00FFFF; }
+        .mode-toggle.diff-toggle .mode-btn.active { background-color: #9b59b6; color: #fff; }
+        .mode-toggle.theme-toggle .mode-btn.active { background-color: #e67e22; color: #fff; }
+
+        /* Setup Text Input */
+        .setup-input {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            background-color: #111;
+            color: #fff;
+            font-size: 1.1em;
+            width: 80%;
+            text-align: center;
+        }
+
+        /* Slider Styling */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 80%;
+            background-color: #111;
+            padding: 15px 25px;
+            border-radius: 50px;
+        }
+        .saved-list-row {
+            display: flex;
+            gap: 10px;
+            width: 85%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .saved-list-select {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            background-color: #111;
+            color: #fff;
+            font-size: 1.05em;
+            min-width: 260px;
+        }
+        .config-input {
+            width: 85%;
+            min-height: 78px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            background-color: #111;
+            color: #fff;
+            font-size: 0.95em;
+            font-family: monospace;
+        }
+        .status-text {
+            font-size: 0.95em;
+            color: #b8f7c4;
+            min-height: 20px;
+        }
+        .status-text.error {
+            color: #ff8b8b;
+        }
+
+        /* Target Area */
+        #target-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--panel-bg);
+            border-radius: 25px;
+            min-height: 280px;
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .instruction-text {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--border-hover);
+            margin-bottom: 15px;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: var(--card-bg); 
+            border: 8px solid var(--card-color-default);
+            border-radius: 20px;
+            width: 180px; 
+            height: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            position: relative;
+        }
+
+        .card img { max-width: 100%; max-height: 70%; object-fit: contain; }
+        .card p { font-size: 1.4em; font-weight: bold; color: var(--card-text); margin: 5px 0 0 0; }
+
+        #card-options { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; width: 100%; }
+
+        /* Feedback */
+        .correct-feedback { border-color: var(--border-correct) !important; transform: scale(1.1); }
+        .incorrect-feedback { border-color: var(--border-incorrect) !important; animation: shake 0.5s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Buttons */
+        .action-btn {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .secondary-btn { background-color: #7f8c8d; color: white; }
+
+        /* Teacher List */
+        .vocab-list-container {
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #333;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .vocab-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #555;
+        }
+        .vocab-item img { width: 40px; height: 40px; background: white; border-radius: 4px; }
+
+        #diagnostic-report {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+            width: 100%;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        #celebration-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 9999;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 16px;
+            border-radius: 3px;
+            left: var(--x);
+            top: var(--y);
+            background: var(--c);
+            animation: confetti-burst 900ms ease-out forwards;
+        }
+        @keyframes confetti-burst {
+            from { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+            to { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(720deg) scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div id="celebration-layer" aria-hidden="true"></div>
+
+    <div id="setup-screen" style="display: flex;">
+        <h1>AAC Review Game</h1>
+        <div class="controls-row">
+            <span class="toggle-label">Student Name:</span>
+            <input type="text" id="setup-student-name" class="setup-input" placeholder="Sarah">
+
+            <span class="toggle-label">1. Game Mode:</span>
+            <div class="mode-toggle">
+                <button id="btn-mode-picture" class="mode-btn active" onclick="setGameMode('picture')">Picture</button>
+                <button id="btn-mode-audio" class="mode-btn" onclick="setGameMode('audio')">Audio Only</button>
+            </div>
+
+            <span class="toggle-label">2. Difficulty:</span>
+            <div class="mode-toggle diff-toggle">
+                <button id="btn-diff-2" class="mode-btn active" onclick="setDifficulty(2)">2 Choices</button>
+                <button id="btn-diff-3" class="mode-btn" onclick="setDifficulty(3)">3 Choices</button>
+            </div>
+
+            <span class="toggle-label">3. Visual:</span>
+            <div class="mode-toggle theme-toggle">
+                <button id="btn-theme-standard" class="mode-btn active" onclick="setTheme('standard')">Standard</button>
+                <button id="btn-theme-high" class="mode-btn" onclick="setTheme('high-contrast')">High Contrast</button>
+            </div>
+
+            <span class="toggle-label">4. Saved Lists:</span>
+            <div class="saved-list-row">
+                <input type="text" id="list-name-input" class="setup-input" placeholder="My AAC List">
+                <button class="action-btn" onclick="saveCurrentList()">Save List</button>
+            </div>
+            <div class="saved-list-row">
+                <select id="saved-list-select" class="saved-list-select"></select>
+                <button class="action-btn" onclick="loadSelectedList()">Load</button>
+                <button class="action-btn" onclick="loadAndStartSelectedList()">Load + Start</button>
+                <button class="action-btn secondary-btn" onclick="deleteSelectedList()">Delete</button>
+            </div>
+            <div class="saved-list-row">
+                <button class="action-btn" onclick="exportSavedLists()">Export Lists</button>
+                <button class="action-btn" onclick="openImportPicker()">Import Lists</button>
+            </div>
+            <span class="toggle-label">5. No-Billing Class Sync:</span>
+            <textarea id="shared-json-url-input" class="config-input" placeholder='Paste shared JSON link (Google Drive or GitHub raw URL)'></textarea>
+            <div class="saved-list-row">
+                <button class="action-btn" onclick="syncListsFromSharedUrl()">Sync Lists From Link</button>
+            </div>
+            <div id="cloud-status" class="status-text"></div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="action-btn" onclick="startGame()">Start Game</button>
+            <button class="action-btn" onclick="openImagePicker()">Upload AAC Images</button>
+            <button class="action-btn secondary-btn" onclick="openTeacherDashboard()">⚙️ Edit Words</button>
+        </div>
+        <input id="image-uploader" type="file" accept="image/*" multiple style="display:none;" onchange="handleImageUpload(event)">
+        <input id="list-importer" type="file" accept="application/json,.json" style="display:none;" onchange="importSavedLists(event)">
+    </div>
+
+    <div id="teacher-screen">
+        <h1>Word Settings</h1>
+        <div class="vocab-list-container" id="vocab-list-container"></div>
+        <button class="action-btn" onclick="closeTeacherDashboard()">Done</button>
+    </div>
+
+    <div id="game-container">
+        <div id="score-display">Progress: <span id="cards-left-count">0</span></div>
+        
+        <div id="target-container">
+            <div class="instruction-text" id="instruction-text">Find this picture!</div>
+            <div class="card" id="target-card" onclick="playTargetWord()">
+                <img id="target-img" src="" alt="">
+                <p id="target-label"></p>
+            </div>
+            <button id="audio-only-btn" class="action-btn" style="display:none;" onclick="playTargetWord()">🔊 Listen</button>
+        </div>
+
+        <div id="card-options">
+            </div>
+    </div>
+
+    <div id="report-screen">
+        <h1>Session Complete!</h1>
+        <div id="diagnostic-report"></div>
+        <button class="action-btn" onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script>
+        const defaultGameContent = [
+            { id: 1, label: "almost", fileKey: "almost", reason: "Approximation" },
+            { id: 2, label: "bad", fileKey: "bad", reason: "Feeling" },
+            { id: 3, label: "color", fileKey: "color", reason: "Descriptor" },
+            { id: 4, label: "did", fileKey: "did", reason: "Past tense action" },
+            { id: 5, label: "go", fileKey: "go", reason: "Movement" },
+            { id: 6, label: "I'm done", fileKey: "im_done", reason: "Completion" },
+            { id: 7, label: "like", fileKey: "like", reason: "Preference" },
+            { id: 8, label: "me", fileKey: "me", reason: "Self" },
+            { id: 9, label: "mine", fileKey: "mine", reason: "Possession" },
+            { id: 10, label: "more", fileKey: "more", reason: "Quantity" },
+            { id: 11, label: "pretty", fileKey: "pretty", reason: "Descriptor" },
+            { id: 12, label: "where", fileKey: "where", reason: "Location" },
+            { id: 13, label: "tell", fileKey: "tell", reason: "Communication" }
+        ];
+
+        function imageCandidates(fileKey) {
+            return [
+                `./images/${fileKey}.png`,
+                `./images/${fileKey}.jpg`,
+                `./images/${fileKey}.jpeg`,
+                `./images/${fileKey}.webp`
+            ];
+        }
+
+        function normalizeFileKey(value) {
+            return String(value || "")
+                .toLowerCase()
+                .replace(/['’]/g, "")
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "");
+        }
+
+        function fileNameToLabel(baseName) {
+            return String(baseName || "")
+                .replace(/[_-]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .toLowerCase();
+        }
+
+        function getNextVocabId() {
+            return vocab.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
+        }
+
+        function setInitialImageUrl(item) {
+            item.url = imageCandidates(item.fileKey)[0];
+            item._imgIndex = 0;
+            item._fromUpload = false;
+            return item;
+        }
+
+        let vocab = defaultGameContent.map(setInitialImageUrl);
+        let gameStack = [];
+        let currentTarget = null;
+        let difficulty = 2;
+        let mode = 'picture';
+        let sessionLog = [];
+        const DB_NAME = 'aac_review_game_db';
+        const DB_VERSION = 1;
+        const LIST_STORE = 'saved_lists';
+        const LAST_LIST_KEY = 'aac_last_list_v1';
+        const SHARED_LISTS_URL_KEY = 'aac_shared_lists_url_v1';
+
+        function setGameMode(m) { 
+            mode = m; 
+            document.querySelectorAll('#btn-mode-picture, #btn-mode-audio').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-mode-${m}`).classList.add('active');
+        }
+
+        function setDifficulty(d) { 
+            difficulty = d; 
+            document.querySelectorAll('#btn-diff-2, #btn-diff-3').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-diff-${d}`).classList.add('active');
+        }
+
+        function setTheme(t) {
+            document.body.className = t === 'high-contrast' ? 'high-contrast' : '';
+            document.querySelectorAll('#btn-theme-standard, #btn-theme-high').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-theme-${t === 'high-contrast' ? 'high' : 'standard'}`).classList.add('active');
+        }
+
+        function openTeacherDashboard() {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('teacher-screen').style.display = 'flex';
+            const list = document.getElementById('vocab-list-container');
+            list.innerHTML = vocab.map(v => `
+                <div class="vocab-item">
+                    <img src="${v.url}" alt="${v.label}" onerror="cycleImageSource(this, ${v.id}, true)">
+                    <span>${v.label}${!v.url ? " (missing)" : ""}</span>
+                </div>
+            `).join('');
+        }
+
+        function openImagePicker() {
+            document.getElementById('image-uploader').click();
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function optimizeImageDataUrl(dataUrl, maxSize = 320, quality = 0.82) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                    const width = Math.max(1, Math.round(img.width * scale));
+                    const height = Math.max(1, Math.round(img.height * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(dataUrl);
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => resolve(dataUrl);
+                img.src = dataUrl;
+            });
+        }
+
+        async function handleImageUpload(event) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+
+            let addedOrUpdated = 0;
+            const newWords = [];
+
+            for (const file of files) {
+                const baseName = file.name.replace(/\.[^.]+$/, "");
+                const key = normalizeFileKey(baseName);
+                if (!key) continue;
+
+                let item = vocab.find(v =>
+                    v.fileKey === key || normalizeFileKey(v.label) === key
+                );
+
+                if (!item) {
+                    item = {
+                        id: getNextVocabId(),
+                        label: fileNameToLabel(baseName) || "new word",
+                        fileKey: key,
+                        reason: "Custom",
+                        url: "",
+                        _imgIndex: -1,
+                        _fromUpload: true
+                    };
+                    vocab.push(item);
+                    newWords.push(item.label);
+                }
+
+                const originalDataUrl = await readFileAsDataUrl(file);
+                item.url = await optimizeImageDataUrl(originalDataUrl);
+                item._fromUpload = true;
+                item._imgIndex = -1;
+                addedOrUpdated += 1;
+            }
+
+            let message = `Uploaded: ${addedOrUpdated} image(s).`;
+            if (newWords.length) message += `\nAdded new word(s): ${newWords.join(", ")}`;
+            alert(message);
+            event.target.value = "";
+        }
+
+        function closeTeacherDashboard() {
+            document.getElementById('teacher-screen').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'flex';
+        }
+
+        async function canLoadImage(url) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = url;
+            });
+        }
+
+        async function startGame() {
+            const playable = [];
+            for (const item of vocab) {
+                if (!item.url) continue;
+                const ok = await canLoadImage(item.url);
+                if (!ok) {
+                    item.url = "";
+                    continue;
+                }
+                playable.push(item);
+            }
+            if (playable.length === 0) {
+                alert('No usable images are loaded yet. Use "Upload AAC Images" first.');
+                return;
+            }
+            gameStack = [...playable].sort(() => Math.random() - 0.5);
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            nextTurn();
+        }
+
+        function nextTurn() {
+            if (gameStack.length === 0) return endGame();
+
+            currentTarget = gameStack.pop();
+            document.getElementById('cards-left-count').textContent = gameStack.length + 1;
+
+            // Setup Target UI
+            if (mode === 'audio') {
+                document.getElementById('target-card').style.display = 'none';
+                document.getElementById('audio-only-btn').style.display = 'block';
+                document.getElementById('instruction-text').textContent = "Listen and Find!";
+            } else {
+                document.getElementById('target-card').style.display = 'flex';
+                document.getElementById('audio-only-btn').style.display = 'none';
+                document.getElementById('target-img').src = currentTarget.url;
+                document.getElementById('target-img').setAttribute('onerror', `cycleImageSource(this, ${currentTarget.id}, false)`);
+                document.getElementById('target-label').textContent = currentTarget.label;
+                document.getElementById('instruction-text').textContent = "Find this picture!";
+            }
+
+            // Create Choices
+            const turnChoiceCount = Math.max(1, Math.min(difficulty, vocab.filter(v => v.url).length));
+            let choices = [currentTarget];
+            let filtered = vocab.filter(v => v.id !== currentTarget.id && v.url);
+            while (choices.length < turnChoiceCount && filtered.length > 0) {
+                let randomChoice = filtered[Math.floor(Math.random() * filtered.length)];
+                if (!choices.includes(randomChoice)) choices.push(randomChoice);
+            }
+            choices.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById('card-options');
+            optionsContainer.innerHTML = '';
+            choices.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<img src="${c.url}" alt="${c.label}"><p>${c.label}</p>`;
+                div.querySelector('img').setAttribute('onerror', `cycleImageSource(this, ${c.id}, false)`);
+                div.onclick = () => checkAnswer(c, div);
+                optionsContainer.appendChild(div);
+            });
+
+            playTargetWord();
+        }
+
+        function playTargetWord() {
+            const utterance = new SpeechSynthesisUtterance(currentTarget.label);
+            utterance.rate = 0.8;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playCelebrationTone() {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+
+            const ctx = new AudioCtx();
+            const now = ctx.currentTime;
+            const notes = [523.25, 659.25, 783.99];
+
+            notes.forEach((freq, index) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const start = now + (index * 0.09);
+                const end = start + 0.12;
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, start);
+                gain.gain.setValueAtTime(0.0001, start);
+                gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(start);
+                osc.stop(end);
+            });
+
+            setTimeout(() => ctx.close(), 600);
+        }
+
+        function checkAnswer(selected, element) {
+            if (selected.id === currentTarget.id) {
+                element.classList.add('correct-feedback');
+                celebrateCorrect(element);
+                playCelebrationTone();
+                sessionLog.push({ word: currentTarget.label, result: 'Correct' });
+                setTimeout(nextTurn, 1000);
+            } else {
+                element.classList.add('incorrect-feedback');
+                sessionLog.push({ word: currentTarget.label, result: 'Incorrect (selected ' + selected.label + ')' });
+                setTimeout(() => element.classList.remove('incorrect-feedback'), 500);
+            }
+        }
+
+        function endGame() {
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('report-screen').style.display = 'flex';
+            
+            const student = document.getElementById('setup-student-name').value || "Student";
+            let report = `SESSION REPORT: ${student}\nDate: ${new Date().toLocaleDateString()}\n\n`;
+            sessionLog.forEach(log => {
+                report += `[${log.result}] Target: ${log.word}\n`;
+            });
+
+            document.getElementById('diagnostic-report').textContent = report;
+        }
+
+        function cycleImageSource(imgElement, wordId, allowSilentFail) {
+            const item = vocab.find(v => v.id === wordId);
+            if (!item) return;
+            if (item._fromUpload) {
+                item.url = "";
+                imgElement.style.display = "none";
+                if (!allowSilentFail) {
+                    alert(`Uploaded image for "${item.label}" could not be displayed. Try uploading that file again.`);
+                }
+                return;
+            }
+            const candidates = imageCandidates(item.fileKey);
+            item._imgIndex = (item._imgIndex || 0) + 1;
+            if (item._imgIndex < candidates.length) {
+                item.url = candidates[item._imgIndex];
+                imgElement.src = item.url;
+                return;
+            }
+
+            item.url = "";
+            imgElement.style.display = "none";
+            if (!allowSilentFail) {
+                alert(`Image missing for "${item.label}". Expected one of: ${candidates.join(', ')}`);
+            }
+        }
+
+        function celebrateCorrect(sourceElement) {
+            const layer = document.getElementById('celebration-layer');
+            const rect = sourceElement.getBoundingClientRect();
+            const originX = rect.left + rect.width / 2;
+            const originY = rect.top + rect.height / 2;
+            const palette = ['#ff5d73', '#ffd166', '#06d6a0', '#118ab2', '#f4a261', '#ef476f'];
+
+            for (let i = 0; i < 24; i += 1) {
+                const piece = document.createElement('div');
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 60 + Math.random() * 140;
+                piece.className = 'confetti-piece';
+                piece.style.setProperty('--x', `${originX}px`);
+                piece.style.setProperty('--y', `${originY}px`);
+                piece.style.setProperty('--dx', `${Math.cos(angle) * radius}px`);
+                piece.style.setProperty('--dy', `${Math.sin(angle) * radius}px`);
+                piece.style.setProperty('--c', palette[Math.floor(Math.random() * palette.length)]);
+                layer.appendChild(piece);
+                setTimeout(() => piece.remove(), 950);
+            }
+        }
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(LIST_STORE)) {
+                        db.createObjectStore(LIST_STORE, { keyPath: 'name' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function withStore(mode, handler) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(LIST_STORE, mode);
+                const store = tx.objectStore(LIST_STORE);
+                const result = handler(store);
+                tx.oncomplete = () => {
+                    db.close();
+                    resolve(result);
+                };
+                tx.onerror = () => {
+                    db.close();
+                    reject(tx.error);
+                };
+                tx.onabort = () => {
+                    db.close();
+                    reject(tx.error);
+                };
+            });
+        }
+
+        async function getAllSavedLists() {
+            return withStore('readonly', store => {
+                return new Promise((resolve, reject) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error);
+                });
+            });
+        }
+
+        async function getSavedListByName(name) {
+            return withStore('readonly', store => {
+                return new Promise((resolve, reject) => {
+                    const req = store.get(name);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+            });
+        }
+
+        async function saveListRecord(record) {
+            return withStore('readwrite', store => {
+                store.put(record);
+            });
+        }
+
+        async function deleteListRecord(name) {
+            return withStore('readwrite', store => {
+                store.delete(name);
+            });
+        }
+
+        function setCloudStatus(message, isError = false) {
+            const el = document.getElementById('cloud-status');
+            if (!el) return;
+            el.textContent = message;
+            el.classList.toggle('error', !!isError);
+        }
+
+        function normalizeSharedJsonUrl(url) {
+            const value = (url || '').trim();
+            if (!value) return '';
+
+            const driveMatch = value.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            if (driveMatch && driveMatch[1]) return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+
+            const githubMatch = value.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/);
+            if (githubMatch) {
+                const [, owner, repo, path] = githubMatch;
+                return `https://raw.githubusercontent.com/${owner}/${repo}/${path}`;
+            }
+
+            return value;
+        }
+
+        async function syncListsFromSharedUrl() {
+            const rawInput = document.getElementById('shared-json-url-input').value.trim();
+            const normalizedUrl = normalizeSharedJsonUrl(rawInput || localStorage.getItem(SHARED_LISTS_URL_KEY) || '');
+            if (!normalizedUrl) {
+                setCloudStatus('Paste a shared JSON link first.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(normalizedUrl, { cache: 'no-store' });
+                if (!response.ok) {
+                    setCloudStatus('Could not download list file from that link.', true);
+                    return;
+                }
+                const parsed = await response.json();
+                const imported = parsed && parsed.lists ? parsed.lists : {};
+                const names = Object.keys(imported);
+                if (names.length === 0) {
+                    setCloudStatus('File loaded, but no lists found in it.', true);
+                    return;
+                }
+
+                for (const name of names) {
+                    const item = imported[name] || {};
+                    await saveListRecord({
+                        name,
+                        vocab: item.vocab || [],
+                        mode: item.mode || 'picture',
+                        difficulty: item.difficulty || 2,
+                        theme: item.theme || 'standard',
+                        savedAt: item.savedAt || new Date().toISOString()
+                    });
+                }
+                localStorage.setItem(SHARED_LISTS_URL_KEY, rawInput || normalizedUrl);
+                await refreshSavedListSelect();
+                setCloudStatus(`Synced ${names.length} list(s) from shared link.`);
+            } catch {
+                setCloudStatus('Sync failed. Check the link and internet connection.', true);
+            }
+        }
+
+        async function refreshSavedListSelect(selectedName = '') {
+            const select = document.getElementById('saved-list-select');
+            let lists = [];
+            try {
+                lists = await getAllSavedLists();
+            } catch {
+                lists = [];
+            }
+            const names = lists.map(item => item.name).sort((a, b) => a.localeCompare(b));
+
+            select.innerHTML = '';
+            if (names.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No saved lists yet';
+                select.appendChild(option);
+                return;
+            }
+
+            names.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+            if (selectedName && names.includes(selectedName)) select.value = selectedName;
+        }
+
+        function serializeCurrentVocab() {
+            return vocab.filter(v => v.url).map(v => ({
+                id: v.id,
+                label: v.label,
+                fileKey: v.fileKey,
+                reason: v.reason,
+                url: v.url || ""
+            }));
+        }
+
+        function hydrateVocab(listVocab) {
+            return listVocab.map(item => ({
+                id: item.id,
+                label: item.label,
+                fileKey: item.fileKey || normalizeFileKey(item.label),
+                reason: item.reason || "",
+                url: item.url || "",
+                _imgIndex: 0,
+                _fromUpload: String(item.url || "").startsWith("data:")
+            }));
+        }
+
+        async function saveCurrentList(showAlert = true) {
+            const input = document.getElementById('list-name-input');
+            const listName = input.value.trim();
+            if (!listName) {
+                alert('Enter a list name first.');
+                return;
+            }
+
+            const record = {
+                name: listName,
+                vocab: serializeCurrentVocab(),
+                mode,
+                difficulty,
+                theme: document.body.classList.contains('high-contrast') ? 'high-contrast' : 'standard',
+                savedAt: new Date().toISOString()
+            };
+            try {
+                await saveListRecord(record);
+            } catch {
+                alert('Could not save this list. Device storage may be full or restricted.');
+                return;
+            }
+            localStorage.setItem(LAST_LIST_KEY, listName);
+            await refreshSavedListSelect(listName);
+            if (showAlert) alert(`Saved list "${listName}".`);
+        }
+
+        async function loadSelectedList(showAlert = true) {
+            const select = document.getElementById('saved-list-select');
+            const listName = select.value;
+            if (!listName) {
+                alert('Choose a saved list first.');
+                return false;
+            }
+            let list = null;
+            try {
+                list = await getSavedListByName(listName);
+            } catch {
+                list = null;
+            }
+
+            if (!list) {
+                alert('Choose a saved list first.');
+                return false;
+            }
+
+            vocab = hydrateVocab(list.vocab || []);
+            if (list.mode) setGameMode(list.mode);
+            if (list.difficulty) setDifficulty(list.difficulty);
+            if (list.theme) setTheme(list.theme);
+
+            localStorage.setItem(LAST_LIST_KEY, listName);
+            document.getElementById('list-name-input').value = listName;
+            if (showAlert) alert(`Loaded list "${listName}".`);
+            return true;
+        }
+
+        async function loadAndStartSelectedList() {
+            const loaded = await loadSelectedList(false);
+            if (!loaded) return;
+            await startGame();
+        }
+
+        async function deleteSelectedList() {
+            const select = document.getElementById('saved-list-select');
+            const listName = select.value;
+            if (!listName) return;
+
+            try {
+                await deleteListRecord(listName);
+            } catch {
+                alert('Could not delete that list.');
+                return;
+            }
+            if (localStorage.getItem(LAST_LIST_KEY) === listName) {
+                localStorage.removeItem(LAST_LIST_KEY);
+            }
+            await refreshSavedListSelect();
+            alert(`Deleted list "${listName}".`);
+        }
+
+        async function exportSavedLists() {
+            let saved = [];
+            try {
+                saved = await getAllSavedLists();
+            } catch {
+                alert('Could not read saved lists for export.');
+                return;
+            }
+            const lists = {};
+            saved.forEach(item => {
+                lists[item.name] = {
+                    vocab: item.vocab || [],
+                    mode: item.mode || 'picture',
+                    difficulty: item.difficulty || 2,
+                    theme: item.theme || 'standard',
+                    savedAt: item.savedAt || new Date().toISOString()
+                };
+            });
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                lists
+            };
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStamp = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `aac-lists-${dateStamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function openImportPicker() {
+            document.getElementById('list-importer').click();
+        }
+
+        async function importSavedLists(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                const imported = parsed && parsed.lists ? parsed.lists : {};
+                if (!imported || typeof imported !== 'object') {
+                    alert('Invalid import file.');
+                    return;
+                }
+
+                const names = Object.keys(imported);
+                for (const name of names) {
+                    const item = imported[name] || {};
+                    await saveListRecord({
+                        name,
+                        vocab: item.vocab || [],
+                        mode: item.mode || 'picture',
+                        difficulty: item.difficulty || 2,
+                        theme: item.theme || 'standard',
+                        savedAt: item.savedAt || new Date().toISOString()
+                    });
+                }
+                await refreshSavedListSelect();
+                alert(`Imported ${Object.keys(imported).length} list(s).`);
+            } catch {
+                alert('Could not import that file.');
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        async function initializeSavedLists() {
+            const savedSharedUrl = localStorage.getItem(SHARED_LISTS_URL_KEY) || '';
+            if (savedSharedUrl) document.getElementById('shared-json-url-input').value = savedSharedUrl;
+
+            await refreshSavedListSelect();
+            const lastList = localStorage.getItem(LAST_LIST_KEY);
+            if (!lastList) return;
+            const existing = await getSavedListByName(lastList);
+            if (!existing) return;
+            document.getElementById('saved-list-select').value = lastList;
+            document.getElementById('list-name-input').value = lastList;
+            await loadSelectedList(false);
+        }
+
+        initializeSavedLists();
+    </script>
+</body>
+</html>
