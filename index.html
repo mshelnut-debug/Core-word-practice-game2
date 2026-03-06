@@ -399,6 +399,7 @@
         <button class="action-btn" onclick="location.reload()">Play Again</button>
     </div>
 
+    <script src="./bundled-lists.js"></script>
     <script>
         const defaultGameContent = [
             { id: 1, label: "almost", fileKey: "almost", reason: "Approximation" },
@@ -893,6 +894,25 @@
             }
         }
 
+        async function loadBundledListsFromScript() {
+            const payload = window.BUNDLED_LISTS_EXPORT;
+            if (!payload || !payload.lists || typeof payload.lists !== 'object') return 0;
+
+            const names = Object.keys(payload.lists);
+            for (const name of names) {
+                const item = payload.lists[name] || {};
+                await saveListRecord({
+                    name,
+                    vocab: item.vocab || [],
+                    mode: item.mode || 'picture',
+                    difficulty: item.difficulty || 2,
+                    theme: item.theme || 'standard',
+                    savedAt: item.savedAt || new Date().toISOString()
+                });
+            }
+            return names.length;
+        }
+
         async function refreshSavedListSelect(selectedName = '') {
             const select = document.getElementById('saved-list-select');
             let lists = [];
@@ -1096,6 +1116,10 @@
         }
 
         async function initializeSavedLists() {
+            const importedCount = await loadBundledListsFromScript();
+            if (importedCount > 0) {
+                setCloudStatus(`Loaded ${importedCount} bundled list(s) for this device.`);
+            }
             const savedSharedUrl = localStorage.getItem(SHARED_LISTS_URL_KEY) || '';
             if (savedSharedUrl) document.getElementById('shared-json-url-input').value = savedSharedUrl;
 
