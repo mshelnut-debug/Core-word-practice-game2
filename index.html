@@ -453,6 +453,25 @@
             return item;
         }
 
+        function sanitizeVocabForStorage(listVocab) {
+            return (listVocab || []).map(item => {
+                const fileKey = item.fileKey || normalizeFileKey(item.label);
+                let url = item.url || "";
+
+                if (!url || /^data:|^blob:/i.test(url)) {
+                    url = imageCandidates(fileKey)[0];
+                }
+
+                return {
+                    id: item.id,
+                    label: item.label,
+                    fileKey,
+                    reason: item.reason || "",
+                    url
+                };
+            });
+        }
+
         let vocab = defaultGameContent.map(setInitialImageUrl);
         let gameStack = [];
         let currentTarget = null;
@@ -903,7 +922,7 @@
                 const item = payload.lists[name] || {};
                 await saveListRecord({
                     name,
-                    vocab: item.vocab || [],
+                    vocab: sanitizeVocabForStorage(item.vocab || []),
                     mode: item.mode || 'picture',
                     difficulty: item.difficulty || 2,
                     theme: item.theme || 'standard',
@@ -942,20 +961,14 @@
         }
 
         function serializeCurrentVocab() {
-            return vocab.filter(v => v.url).map(v => ({
-                id: v.id,
-                label: v.label,
-                fileKey: v.fileKey,
-                reason: v.reason,
-                url: v.url || ""
-            }));
+            return sanitizeVocabForStorage(vocab).filter(v => v.url);
         }
 
         function hydrateVocab(listVocab) {
-            return listVocab.map(item => ({
+            return sanitizeVocabForStorage(listVocab).map(item => ({
                 id: item.id,
                 label: item.label,
-                fileKey: item.fileKey || normalizeFileKey(item.label),
+                fileKey: item.fileKey,
                 reason: item.reason || "",
                 url: item.url || "",
                 _imgIndex: 0,
@@ -1099,7 +1112,7 @@
                     const item = imported[name] || {};
                     await saveListRecord({
                         name,
-                        vocab: item.vocab || [],
+                        vocab: sanitizeVocabForStorage(item.vocab || []),
                         mode: item.mode || 'picture',
                         difficulty: item.difficulty || 2,
                         theme: item.theme || 'standard',
